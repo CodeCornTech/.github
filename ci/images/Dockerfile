@@ -1,16 +1,29 @@
 # syntax=docker/dockerfile:1
-# Reusable PHP + Node 22 toolchain, never install PHP in a CI job.
+# Ubuntu Noble + maintained PHP packages (including legacy 8.1), Node 22 and Composer.
+# Build once per PHP minor; never install PHP from inside a CI job.
 ARG PHP_VERSION=8.3
 FROM node:22-bookworm-slim AS node
 FROM composer:2 AS composer
-FROM php:${PHP_VERSION}-cli-bookworm AS base
+FROM ubuntu:24.04 AS base
+ARG PHP_VERSION
 LABEL org.opencontainers.image.source="https://github.com/CodeCornTech/.github"
 ENV DEBIAN_FRONTEND=noninteractive COMPOSER_ALLOW_SUPERUSER=1 NODE_PATH=/usr/local/lib/node_modules
 RUN set -eux; \
     apt-get update; \
-    apt-get install -y --no-install-recommends bash git curl ca-certificates unzip zip jq python3 libzip-dev libicu-dev libonig-dev libpq-dev libsqlite3-dev; \
-    docker-php-ext-install -j 2 bcmath intl mbstring pdo_mysql pdo_pgsql pdo_sqlite zip; \
-    apt-get clean; rm -rf /var/lib/apt/lists/*
+    apt-get install -y --no-install-recommends \
+      ca-certificates curl gnupg software-properties-common \
+      bash git zip unzip jq python3; \
+    add-apt-repository -y ppa:ondrej/php; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+      "php${PHP_VERSION}-cli" "php${PHP_VERSION}-zip" "php${PHP_VERSION}-bcmath" \
+      "php${PHP_VERSION}-intl" "php${PHP_VERSION}-mbstring" \
+      "php${PHP_VERSION}-sqlite3" "php${PHP_VERSION}-pgsql" \
+      "php${PHP_VERSION}-mysql" "php${PHP_VERSION}-xml" \
+      "php${PHP_VERSION}-curl"; \
+    ln -s "/usr/bin/php${PHP_VERSION}" /usr/local/bin/php; \
+    apt-get clean; \
+    rm -rf /var/lib/apt/lists/*
 COPY --from=node /usr/local/bin/node /usr/local/bin/node
 COPY --from=node /usr/local/lib/node_modules/ /usr/local/lib/node_modules/
 COPY --from=composer /usr/bin/composer /usr/local/bin/composer
