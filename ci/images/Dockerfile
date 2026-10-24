@@ -3,7 +3,7 @@
 ARG PHP_VERSION=8.3
 FROM node:22-bookworm-slim AS node
 FROM composer:2 AS composer
-FROM php:${PHP_VERSION}-cli-bookworm
+FROM php:${PHP_VERSION}-cli-bookworm AS base
 LABEL org.opencontainers.image.source="https://github.com/CodeCornTech/.github"
 ENV DEBIAN_FRONTEND=noninteractive COMPOSER_ALLOW_SUPERUSER=1 NODE_PATH=/usr/local/lib/node_modules
 RUN set -eux; \
@@ -18,3 +18,13 @@ RUN ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
     && ln -s /usr/local/lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx \
     && php -v && node -v && npm -v && composer --version
 WORKDIR /workspace
+
+FROM base AS ci
+
+FROM base AS playwright
+ARG PLAYWRIGHT_VERSION=1.62.1
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \
+    PLAYWRIGHT_MODULE=/usr/local/lib/node_modules/playwright
+RUN npm install --global "playwright@${PLAYWRIGHT_VERSION}" \
+    && npx playwright install --with-deps chromium \
+    && node -e 'require(process.env.PLAYWRIGHT_MODULE).chromium.executablePath()'
