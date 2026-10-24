@@ -1,0 +1,10 @@
+# syntax=docker/dockerfile:1
+ARG BASE_IMAGE=ghcr.io/codecorntech/ci-php:8.1-node22-v1
+FROM ${BASE_IMAGE}
+ARG PLAYWRIGHT_VERSION=1.62.1
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \
+    PLAYWRIGHT_MODULE=/usr/local/lib/node_modules/playwright
+RUN npm install --global "playwright@${PLAYWRIGHT_VERSION}" \
+    && npx playwright install --with-deps chromium \
+    && node -e 'require(process.env.PLAYWRIGHT_MODULE).chromium.executablePath()'
+WORKDIR /workspace
