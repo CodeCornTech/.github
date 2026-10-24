@@ -23,10 +23,10 @@ if [[ "$mode" == --build ]]; then
     [[ "$free_kb" =~ ^[0-9]+$ && "$free_kb" -ge 6291456 ]] || { echo 'ERROR: less than 6GiB disk free' >&2; exit 1; }
     for v in "${versions[@]}"; do
         tag="${base}:${v}-node22-v1"
-        docker buildx build --load --pull --progress=plain -f Dockerfile --build-arg "PHP_VERSION=$v" -t "$tag" .
+        docker buildx build --load --pull --progress=plain --target ci -f Dockerfile --build-arg "PHP_VERSION=$v" -t "$tag" .
     done
-    docker buildx build --load --progress=plain -f Dockerfile.playwright \
-        --build-arg "BASE_IMAGE=${base}:8.1-node22-v1" \
+    docker buildx build --load --progress=plain --target playwright -f Dockerfile \
+        --build-arg 'PHP_VERSION=8.1' \
         --build-arg 'PLAYWRIGHT_VERSION=1.62.1' -t "$browser_tag" .
     echo 'Build finished; run --check before --publish.'
 elif [[ "$mode" == --check ]]; then
