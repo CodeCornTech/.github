@@ -35,7 +35,7 @@ elif [[ "$mode" == --check ]]; then
         docker image inspect "$tag" >/dev/null || { echo "MISSING: $tag"; exit 1; }
         major="${v%%.*}"; minor="${v#*.}"
         docker run --rm --pull=never --entrypoint sh "$tag" -ec \
-            "php -r 'exit(PHP_MAJOR_VERSION===$major && PHP_MINOR_VERSION===$minor ? 0 : 1);' && php -m | grep -iq zip && node -e 'process.exit(process.versions.node.startsWith(\\\"22.\\\")?0:1)' && composer --version"
+            "php -r 'exit(PHP_MAJOR_VERSION===$major && PHP_MINOR_VERSION===$minor ? 0 : 1);' && php -m | grep -iq zip && node --version | grep -q '^v22[.]' && composer --version"
         echo "OK: $tag"
     done
     docker image inspect "$browser_tag" >/dev/null || { echo "MISSING: $browser_tag"; exit 1; }
