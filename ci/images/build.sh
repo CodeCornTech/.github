@@ -39,8 +39,8 @@ elif [[ "$mode" == --check ]]; then
         echo "OK: $tag"
     done
     docker image inspect "$browser_tag" >/dev/null || { echo "MISSING: $browser_tag"; exit 1; }
-    docker run --rm --pull=never --entrypoint sh "$browser_tag" -ec \
-        'node -e '\''const p=require(process.env.PLAYWRIGHT_MODULE); if(!require("fs").existsSync(p.chromium.executablePath())) process.exit(1)'\''
+    docker run --rm --pull=never --entrypoint node "$browser_tag" -e \
+        'const p = require(process.env.PLAYWRIGHT_MODULE); const fs = require("node:fs"); if (!fs.existsSync(p.chromium.executablePath())) process.exit(1);'
     echo "OK: $browser_tag"
     docker system df
     echo 'CHECK PASSED'
