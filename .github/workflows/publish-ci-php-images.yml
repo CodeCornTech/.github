@@ -1,0 +1,53 @@
+name: Publish shared CI PHP images
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: codecorn-ci-image-publisher
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Build, verify and publish GHCR PHP/Playwright toolchains
+    runs-on: [self-hosted, Linux, X64, codecorn-org]
+    timeout-minutes: 120
+    if: github.repository == 'CodeCornTech/.github' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Verify DKR-01 disk and build prerequisites
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(hostname -s | tr '[:upper:]' '[:lower:]')" = dkr-01
+          docker info >/dev/null
+          bash ci/images/build.sh --dry-run
+
+      - name: Build container images
+        shell: bash
+        run: bash ci/images/build.sh --build
+
+      - name: Smoke-test PHP, Composer, Node and Playwright
+        shell: bash
+        run: bash ci/images/build.sh --check
+
+      - name: Authenticate only for GHCR publication
+        if: github.event_name == 'workflow_dispatch'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish the five versioned images
+        if: github.event_name == 'workflow_dispatch'
+        shell: bash
+        run: printf 'PUBLISH\n' | bash ci/images/build.sh --publish
